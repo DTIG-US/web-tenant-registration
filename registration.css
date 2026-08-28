@@ -1,0 +1,19 @@
+/* ─── Page background override (registration-specific) ──────── */
+/*
+ * The inline <style> block inside registration.html handles all
+ * component-level styles directly. This scoped CSS file is kept
+ * for any Angular-specific host-level overrides as the component
+ * evolves (e.g. :host display, encapsulation tweaks).
+ *
+ * Brand tokens used throughout registration.html:
+ *   Background : #0a0f2c (deep navy)
+ *   Accent 1   : #7df9ff (electric cyan)
+ *   Accent 2   : #00c8d4 (teal)
+ *   Text/muted : rgba(200, 220, 255, 0.8)
+ *   Card bg    : rgba(10, 15, 44, 0.65) + backdrop-filter blur(18px)
+ *   Fonts      : 'Outfit' (headings) · 'Inter' (body)
+ */
+
+:host {
+    display: block;
+}

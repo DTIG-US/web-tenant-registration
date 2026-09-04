@@ -2,223 +2,67 @@
   <div class="registration-stack">
     <div class="container" role="main">
         <h1>Create Account</h1>
-        <p class="subtitle">Register your organization with EntraID</p>
+        <p class="subtitle">Register your organization to provision a tenant</p>
 
-        <form id="signupForm" novalidate aria-label="Organization registration form">
+        <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()" novalidate aria-label="Organization registration form">
           <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" placeholder="Jane Doe" autocomplete="name" required
-              aria-required="true">
-            <div class="error-message" id="nameError" role="alert" aria-live="polite">Please enter your full name</div>
+            <input type="text" id="name" formControlName="name" placeholder="Jane Doe" autocomplete="name" aria-required="true"
+              [class.error]="registrationForm.get('name')?.invalid && registrationForm.get('name')?.touched">
+            @if (registrationForm.get('name')?.invalid && registrationForm.get('name')?.touched) {
+              <div class="error-message show" role="alert" aria-live="polite">Please enter your full name</div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" formControlName="email" placeholder="jane.doe@example.com" autocomplete="email" aria-required="true"
+              [class.error]="registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched">
+            @if (registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched) {
+              <div class="error-message show" role="alert" aria-live="polite">Please enter a valid email</div>
+            }
           </div>
 
           <div class="form-group">
             <label for="address">Address</label>
-            <input type="text" id="address" name="address" placeholder="123 Main St, City, State, ZIP"
-              autocomplete="street-address" required aria-required="true">
-            <div class="error-message" id="addressError" role="alert" aria-live="polite">Please enter your address</div>
+            <input type="text" id="address" formControlName="address" placeholder="123 Main St, City, State, ZIP"
+              autocomplete="street-address" aria-required="true"
+              [class.error]="registrationForm.get('address')?.invalid && registrationForm.get('address')?.touched">
+            @if (registrationForm.get('address')?.invalid && registrationForm.get('address')?.touched) {
+              <div class="error-message show" role="alert" aria-live="polite">Please enter your address</div>
+            }
           </div>
 
           <div class="form-group">
             <label for="company">Company</label>
-            <input type="text" id="company" name="company" placeholder="Company Name" autocomplete="organization"
-              required aria-required="true">
-            <div class="error-message" id="companyError" role="alert" aria-live="polite">Please enter your company name
-            </div>
+            <input type="text" id="company" formControlName="company" placeholder="Company Name" autocomplete="organization"
+              aria-required="true"
+              [class.error]="registrationForm.get('company')?.invalid && registrationForm.get('company')?.touched">
+            @if (registrationForm.get('company')?.invalid && registrationForm.get('company')?.touched) {
+              <div class="error-message show" role="alert" aria-live="polite">Please enter your company name</div>
+            }
           </div>
 
-          <div class="form-group">
-            <label for="tenantId">Tenant ID (6-digit hash)</label>
-            <div class="tenant-id-container">
-              <input type="text" id="tenantId" name="tenantId" readonly required aria-required="true"
-                aria-describedby="tenantError">
-              <button type="button" class="btn-generate" id="generateTenantBtn"
-                aria-label="Generate new Tenant ID">Generate</button>
-            </div>
-            <div class="error-message" id="tenantError" role="alert" aria-live="polite">Please generate a Tenant ID
-            </div>
-          </div>
-
-          <!-- Hidden fields for EntraID token -->
-          <input type="hidden" id="idToken" name="idToken">
-          <input type="hidden" id="accessToken" name="accessToken">
-
-          <button type="submit" class="btn-submit" id="submitBtn">Register with EntraID</button>
+          <button type="submit" class="btn-submit" [disabled]="isLoading">Register Organization</button>
         </form>
 
-        <div class="loading" id="loadingIndicator" role="status" aria-live="polite">
-          <span class="spinner" aria-hidden="true"></span> Authenticating with EntraID…
-        </div>
+        @if (isLoading) {
+          <div class="loading show" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true"></span> Submitting registration...
+          </div>
+        }
 
-        <div class="success-message" id="successMessage" role="status" aria-live="polite">
-          ✅ Registration successful! JWT token issued by EntraID.
-        </div>
-
-        <div class="token-display" id="tokenDisplay" aria-label="JWT Token">
-          <strong>JWT Token</strong>
-          <pre id="tokenContent"></pre>
-        </div>
+        @if (successMessage) {
+          <div class="success-message show" role="status" aria-live="polite">
+            ✅ {{ successMessage }}
+          </div>
+        }
+        
+        @if (errorMessage) {
+          <div class="error-message show" role="alert" aria-live="polite">
+            ❌ {{ errorMessage }}
+          </div>
+        }
       </div>
-
-      <script>
-        // ============================================================
-        // 1. GENERATE RANDOM 6-DIGIT TENANT ID
-        // ============================================================
-        function generateTenantId() {
-          const min = 100000;
-          const max = 999999;
-          return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-
-        function formatTenantId(id) {
-          return id.toString().padStart(6, '0');
-        }
-
-        function updateTenantId() {
-          const tenantIdInput = document.getElementById('tenantId');
-          tenantIdInput.value = formatTenantId(generateTenantId());
-          const errorEl = document.getElementById('tenantError');
-          errorEl.classList.remove('show');
-          tenantIdInput.style.borderColor = '';
-        }
-
-        // ============================================================
-        // 2. MOCK ENTRAID TOKEN ISSUANCE (Replace with real EntraID MSAL)
-        // ============================================================
-        function mockEntraIdToken(userData) {
-          const header = {
-            alg: "RS256",
-            typ: "JWT",
-            kid: "mock-key-id"
-          };
-
-          const payload = {
-            sub: "user-" + Math.random().toString(36).substring(2, 10),
-            name: userData.name,
-            email: userData.email || userData.name + "@example.com",
-            iss: "https://login.microsoftonline.com/your-tenant-id/v2.0",
-            aud: "your-client-id",
-            exp: Math.floor(Date.now() / 1000) + 3600,
-            iat: Math.floor(Date.now() / 1000),
-            nbf: Math.floor(Date.now() / 1000),
-            tenantId: userData.tenantId,
-            company: userData.company,
-            address: userData.address,
-            tenantHash: userData.tenantId
-          };
-
-          const base64UrlEncode = (obj) =>
-            btoa(JSON.stringify(obj))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-          const mockSignature = btoa("mock-signature-" + Math.random().toString(36).substring(2, 15))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-          return {
-            token: base64UrlEncode(header) + '.' + base64UrlEncode(payload) + '.' + mockSignature,
-            decodedPayload: payload
-          };
-        }
-
-        // ============================================================
-        // 3. FORM SUBMISSION HANDLER
-        // ============================================================
-        document.getElementById('signupForm').addEventListener('submit', async function (e) {
-          e.preventDefault();
-
-          document.getElementById('successMessage').classList.remove('show');
-          document.getElementById('tokenDisplay').classList.remove('show');
-          document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
-
-          const name = document.getElementById('name').value.trim();
-          const address = document.getElementById('address').value.trim();
-          const company = document.getElementById('company').value.trim();
-          const tenantId = document.getElementById('tenantId').value.trim();
-
-          let isValid = true;
-
-          function setError(inputId, errorId, valid) {
-            const el = document.getElementById(inputId);
-            const err = document.getElementById(errorId);
-            if (!valid) {
-              err.classList.add('show');
-              el.style.borderColor = '#ff6b7a';
-              isValid = false;
-            } else {
-              el.style.borderColor = '';
-            }
-          }
-
-          setError('name', 'nameError', !!name);
-          setError('address', 'addressError', !!address);
-          setError('company', 'companyError', !!company);
-          setError('tenantId', 'tenantError', !!(tenantId && tenantId.length === 6));
-
-          if (!isValid) return;
-
-          const submitBtn = document.getElementById('submitBtn');
-          const loadingIndicator = document.getElementById('loadingIndicator');
-          submitBtn.disabled = true;
-          loadingIndicator.classList.add('show');
-
-          try {
-            const userData = {
-              name,
-              address,
-              company,
-              tenantId
-            };
-            console.log('Requesting token from EntraID for:', userData);
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const result = mockEntraIdToken(userData);
-            console.log('Token received from EntraID:', result.token);
-            console.log('Decoded payload with tenantId claim:', result.decodedPayload);
-
-            document.getElementById('idToken').value = result.token;
-            document.getElementById('accessToken').value = result.token;
-            document.getElementById('successMessage').classList.add('show');
-            document.getElementById('tokenContent').textContent = result.token;
-            document.getElementById('tokenDisplay').classList.add('show');
-            console.log('✅ Tenant ID claim value:', result.decodedPayload.tenantId);
-          } catch (error) {
-            console.error('Error during token issuance:', error);
-            alert('Failed to issue token from EntraID. Please try again.');
-          } finally {
-            loadingIndicator.classList.remove('show');
-            submitBtn.disabled = false;
-          }
-        });
-
-        // ============================================================
-        // 4. GENERATE TENANT ID ON LOAD AND BUTTON CLICK
-        // ============================================================
-        document.getElementById('generateTenantBtn').addEventListener('click', updateTenantId);
-        document.addEventListener('DOMContentLoaded', updateTenantId);
-
-        // ============================================================
-        // 5. VALIDATE TENANT ID FORMAT ON CHANGE
-        // ============================================================
-        document.getElementById('tenantId').addEventListener('change', function () {
-          const val = this.value.trim();
-          if (val && !/^\d{6}$/.test(val)) {
-            this.style.borderColor = '#ff6b7a';
-            document.getElementById('tenantError').textContent = 'Tenant ID must be exactly 6 digits';
-            document.getElementById('tenantError').classList.add('show');
-          } else {
-            this.style.borderColor = '';
-            document.getElementById('tenantError').classList.remove('show');
-          }
-        });
-
-        console.log('%c📋 Insightful Health AI – Tenant Registration Loaded', 'font-size: 15px; font-weight: bold;');
-        console.log('%cTenant ID will be included as a custom claim in the JWT', 'color: #7df9ff;');
-
-      </script>
   </div>
 </section>

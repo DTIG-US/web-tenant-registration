@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 
 export interface RegistrationRequest {
   name: string;
@@ -18,20 +19,26 @@ export interface RegistrationResponse {
   providedIn: 'root'
 })
 export class RegistrationService {
+  private http = inject(HttpClient);
 
   constructor() { }
 
   /**
-   * Mocks a call to the submit registration API.
-   * This will eventually be replaced with an HTTP POST to the Python Azure Function.
+   * Calls the SubmitRegistration API.
    */
   submitRegistration(request: RegistrationRequest): Observable<RegistrationResponse> {
-    console.log('Mock API call: Submitting registration for', request);
-    
-    // Simulate network delay and successful response
-    return of({
-      success: true,
-      message: 'Please check your email to verify your registration and provision your tenant.'
-    }).pipe(delay(1500));
+    return this.http.post('/api/SubmitRegistration', request, { responseType: 'text' }).pipe(
+      map(responseMessage => ({
+        success: true,
+        message: responseMessage
+      })),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Registration failed:', error);
+        return of({
+          success: false,
+          message: error.error || 'An unexpected error occurred.'
+        });
+      })
+    );
   }
 }
